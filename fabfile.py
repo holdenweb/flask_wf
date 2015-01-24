@@ -26,22 +26,31 @@ URLPATH = "/"
 # Establish universal fabric environment parameters
 env.hosts = [HOST]
 
-def auth_webfaction():
-    from xmlrpclib import ServerProxy
-    server = ServerProxy('https://api.webfaction.com/')
-    session_id, account = server.login(username, password)
-    return session_id, account
+WF_SERVR, WF_SESSN, WF_ACCNT = None, None, None
 
-WF_CREDS = auth_webfaction()
+def auth_webfaction():
+    """Authenticates one-time with the Web Faction server.
+    The shenanigans with the globals are to hide xmlrpclib
+    from fabric's task discovery logic, which apparently
+    does something nasty like try an equality test that then
+    triggers an exception. Which I can do without. Sorry."""
+    global WF_SERVR, WF_SESSN, WF_ACCNT
+    if not WF_SERVR:
+        from xmlrpclib import ServerProxy
+        server = ServerProxy('https://api.webfaction.com/')
+        session_id, account = server.login(username, password)
+        WF_SERVR, WF_SESSN, WF_ACCNT = server, session_id, account
+
 
 @task
-def rhubarb():
-    run("echo $HOME")
+def app_create(name):
+    local("echo "+name)
+    auth_webfaction()
+    #run("mkdir $HOME/webapps/{}".format(APPNAME))
 
 ## Step 2
 ## deploy the app
 #cd $HOME
-#mkdir -p $HOME/lib/python2.7
 #easy_install-2.7 flask
 #rm -r $HOME/webapps/$APPNAME/htdocs
 #mkdir $HOME/webapps/$APPNAME/$APPNAME
