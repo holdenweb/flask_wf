@@ -21,9 +21,22 @@ APP_NAME = APPNAME
 APP_PORT = 30123 # Should read port from WebFaction API
 URLPATH = "/"
 
+# Extract some parameters from the environment?
+
+# Establish universal fabric environment parameters
+env.hosts = [HOST]
+
+def auth_webfaction():
+    from xmlrpclib import ServerProxy
+    server = ServerProxy('https://api.webfaction.com/')
+    session_id, account = server.login(username, password)
+    return session_id, account
+
+WF_CREDS = auth_webfaction()
+
 @task
 def rhubarb():
-    local("echo hello")
+    run("echo $HOME")
 
 ## Step 2
 ## deploy the app
@@ -76,11 +89,7 @@ def rhubarb():
 #$HOME/webapps/$APPNAME/apache2/bin/restart
 
 # First of all we need to create a new application to support the web site
-@task
-def somefunc():
-    from xmlrpclib import ServerProxy
-    server = ServerProxy('https://api.webfaction.com/')
-    print "Server connection created"
-    session_id, account = server.login(username, password)
-    print "Session established"
 
+@task
+def create_app(name):
+    pass
