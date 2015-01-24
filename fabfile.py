@@ -41,11 +41,14 @@ def auth_webfaction():
         session_id, account = server.login(username, password)
         WF_SERVR, WF_SESSN, WF_ACCNT = server, session_id, account
 
-
 @task
 def app_create(name):
     local("echo "+name)
     auth_webfaction()
+    WF_SERVR.create_app(WF_SESSN, name, "mod_wsgi34-python27")
+    apps = WF_SERVR.list_apps(WF_SESSN)
+    app = [a for a in apps if a['name'] == name][0]
+    print "Your app:", app
     #run("mkdir $HOME/webapps/{}".format(APPNAME))
 
 ## Step 2
