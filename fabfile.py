@@ -3,7 +3,6 @@
 """This fabfile is intended to allow the easy creation of Flask web sites
 on Web Faction servers. So far it is purely for personal use only.
 """
-
 import posixpath
 
 from credentials import username, password
@@ -11,20 +10,78 @@ from fabric.api import run, local, abort, env, put, task
 from fabric.contrib.files import exists
 from fabric.context_managers import cd, lcd, settings, hide
 
+# Set system parameters
+# Python version
+PYTHON_BIN = "python2.7"
+PYTHON_PREFIX = "/usr/local" # e.g. /usr/local  Use "" for automatic
+PYTHON_FULL_PATH = "%s/bin/%s" % (PYTHON_PREFIX, PYTHON_BIN) if PYTHON_PREFIX else PYTHON_BIN
+
 # Set basic application parameters
 USER = username
 HOST = 'web105.webfaction.com'
 GUNICORN_WORKERS = 1
-SITENAME = "test.holdenweb.com"
-APPNAME = "test_app"
+SITENAME = "holdenweb_preview"
+APPNAME = "new_app_6"
 APP_NAME = APPNAME
 APP_PORT = 30123 # Should read port from WebFaction API
 URLPATH = "/"
 
+PROJECT_DIR = posixpath.join('/home', USER, 'webapps', APP_NAME)
+VENV_SUBDIR = 'venv'
+VENV_DIR = posixpath.join(PROJECT_DIR, 'venv')
+
 # Extract some parameters from the environment?
 
 # Establish universal fabric environment parameters
-env.hosts = [HOST]
+# Host and login username:
+env.hosts = ['%s@%s' % (USER, HOST)]
+
+@task
+def server_stop():
+    with cd(PROJECT_DIR):
+        run("apache2/bin/stop")
+
+@task
+def server_start():
+    with cd(PROJECT_DIR):
+        run("apache2/bin/start")
+@task
+def server_restart():
+    with cd(PROJECT_DIR):
+        run("apache2/bin/restart")
+
+
+def install_dependencies():
+    ensure_virtualenv()
+    with virtualenv(VENV_DIR):
+        with cd(SRC_DIR):
+            run_venv("pip install -r requirements.txt")
+
+def virtualenv(venv_dir):
+    """
+    Context manager that establishes a virtualenv to use.
+    """
+    return settings(venv=venv_dir)
+
+
+def run_venv(command, **kwargs):
+    """
+    Runs a command in a virtualenv (which has been specified using
+    the virtualenv context manager
+    """
+    run("source %s/bin/activate" % env.venv + " && " + command, **kwargs)
+
+
+def ensure_virtualenv():
+    if exists(VENV_DIR):
+        return
+
+    with cd(DJANGO_APP_ROOT):
+        run("virtualenv --no-site-packages --python=%s %s" %
+            (PYTHON_BIN, VENV_SUBDIR))
+        run("echo %s > %s/lib/%s/site-packages/projectsource.pth" %
+            (SRC_DIR, VENV_SUBDIR, PYTHON_BIN))
+
 
 WF_SERVR, WF_SESSN, WF_ACCNT = None, None, None
 
@@ -46,20 +103,46 @@ def app_create(name):
     local("echo "+name)
     auth_webfaction()
     WF_SERVR.create_app(WF_SESSN, name, "mod_wsgi34-python27")
-    apps = WF_SERVR.list_apps(WF_SESSN)
-    app = [a for a in apps if a['name'] == name][0]
+    # The above automatically creates /$HOME/webapps/$APPNAME
+    
+    app = [a for a in WF_SERVR.list_apps(WF_SESSN) if a['name'] == name][0]
     print "Your app:", app
     websites = WF_SERVR.list_websites(WF_SESSN)
-    print(websites)
-#    website = [w for w in websites if w['name'] == SITENAME][0]
-#    print "Your current site:", website
+    #print(websites)
+    website = [w for w in websites if w['name'] == SITENAME][0]
+    print "Your current site:", website
     #run("mkdir $HOME/webapps/{}".format(APPNAME))
 
 @task
-def app_delete(name):
-    local("echo "+name)
+def site_create():
+    pass
+    
+@task
+def app_delete():
+    server_stop()
     auth_webfaction()
     WF_SERVR.delete_app(WF_SESSN, name)
+
+@task
+def domain_list():
+    auth_webfaction()
+    domains = WF_SERVR.list_domains(WF_SESSN)
+    for d in domains:
+        print d
+
+@task
+def app_list():
+    auth_webfaction()
+    apps = WF_SERVR.list_apps(WF_SESSN)
+    for app in apps:
+        print app
+
+@task
+def domain_list():
+    auth_webfaction()
+    domains = WF_SERVR.list_domains(WF_SESSN)
+    for domain in domains:
+        print domain
 
 ## Step 2
 ## deploy the app
