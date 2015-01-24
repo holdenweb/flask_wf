@@ -49,7 +49,17 @@ def app_create(name):
     apps = WF_SERVR.list_apps(WF_SESSN)
     app = [a for a in apps if a['name'] == name][0]
     print "Your app:", app
+    websites = WF_SERVR.list_websites(WF_SESSN)
+    print(websites)
+#    website = [w for w in websites if w['name'] == SITENAME][0]
+#    print "Your current site:", website
     #run("mkdir $HOME/webapps/{}".format(APPNAME))
+
+@task
+def app_delete(name):
+    local("echo "+name)
+    auth_webfaction()
+    WF_SERVR.delete_app(WF_SESSN, name)
 
 ## Step 2
 ## deploy the app
