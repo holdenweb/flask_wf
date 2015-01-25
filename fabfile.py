@@ -5,10 +5,11 @@ on Web Faction servers. So far it is purely for personal use only.
 """
 import posixpath
 
-from credentials import username, password
 from fabric.api import run, local, abort, env, put, task
 from fabric.contrib.files import exists
 from fabric.context_managers import cd, lcd, settings, hide
+
+from credentials import username, password
 
 # Set system parameters
 # Python version
@@ -18,6 +19,7 @@ PYTHON_FULL_PATH = "%s/bin/%s" % (PYTHON_PREFIX, PYTHON_BIN) if PYTHON_PREFIX el
 
 # Set basic application parameters
 USER = username
+PASSWD = password
 HOST = 'web105.webfaction.com'
 GUNICORN_WORKERS = 1
 SITENAME = "holdenweb_preview"
@@ -28,7 +30,9 @@ URLPATH = "/"
 
 PROJECT_DIR = posixpath.join('/home', USER, 'webapps', APP_NAME)
 VENV_SUBDIR = 'venv'
-VENV_DIR = posixpath.join(PROJECT_DIR, 'venv')
+VENV_DIR = posixpath.join(PROJECT_DIR, VENV_SUBDIR)
+SRC_SUBDIR = 'src'
+SRC_DIR = posixpath.join(PROJECT_DIR, SRC_SUBDIR)
 
 # Extract some parameters from the environment?
 
@@ -45,11 +49,11 @@ def server_stop():
 def server_start():
     with cd(PROJECT_DIR):
         run("apache2/bin/start")
+
 @task
 def server_restart():
     with cd(PROJECT_DIR):
         run("apache2/bin/restart")
-
 
 def install_dependencies():
     ensure_virtualenv()
@@ -71,17 +75,22 @@ def run_venv(command, **kwargs):
     """
     run("source %s/bin/activate" % env.venv + " && " + command, **kwargs)
 
-
+@task
 def ensure_virtualenv():
     if exists(VENV_DIR):
         return
 
-    with cd(DJANGO_APP_ROOT):
+    with cd(PROJECT_DIR):
         run("virtualenv --no-site-packages --python=%s %s" %
             (PYTHON_BIN, VENV_SUBDIR))
         run("echo %s > %s/lib/%s/site-packages/projectsource.pth" %
             (SRC_DIR, VENV_SUBDIR, PYTHON_BIN))
 
+@task
+def ensure_src_dir():
+    if not exists(SRC_DIR):
+        #run("mkdir -p %s" % SRC_DIR)
+        put(SRC_SUBDIR, PROJECT_DIR)
 
 WF_SERVR, WF_SESSN, WF_ACCNT = None, None, None
 
@@ -103,18 +112,17 @@ def app_create(name):
     local("echo "+name)
     auth_webfaction()
     WF_SERVR.create_app(WF_SESSN, name, "mod_wsgi34-python27")
-    # The above automatically creates /$HOME/webapps/$APPNAME
-    
+    # The above automatically creates $PROJECT_DIR
+    with cd(PROJECT_DIR):
+        run("rm -r htdocs")
     app = [a for a in WF_SERVR.list_apps(WF_SESSN) if a['name'] == name][0]
-    print "Your app:", app
     websites = WF_SERVR.list_websites(WF_SESSN)
-    #print(websites)
     website = [w for w in websites if w['name'] == SITENAME][0]
     print "Your current site:", website
     #run("mkdir $HOME/webapps/{}".format(APPNAME))
 
 @task
-def site_create():
+def site_create(name):
     pass
     
 @task
