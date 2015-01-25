@@ -1,0 +1,16 @@
+# Notes on the Flask_WebFaction Project
+
+This project is intended as a "starter kit" to encourage those relatively new
+to the open source web to follow better practices than they otherwise might,
+thereby saving time and avoiding frustration.
+
+Whether you, dear reader, are a beginner or an experienced hand, ***you can
+help this project***. Please contact us about ***anything*** in this document
+(or in the rest of the project) which does not seem clear. It is way too easy
+for the person who designs a procedure to overlook obvious gaps in the
+information they provide, so all feedback will be valuable and will, indeed,
+give this project any real value it has.
+
+So far ()10:30 on 2015-1-25) I can create a remote pplication and transfer
+the source files up to the application directory. Now I should add a few files
+to the project to allow use of "git clean".
