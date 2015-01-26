@@ -79,20 +79,19 @@ def run_venv(command, **kwargs):
 def ensure_virtualenv():
     if exists(VENV_DIR):
         return
-
     with cd(PROJECT_DIR):
         run("virtualenv --no-site-packages --python=%s %s" %
             (PYTHON_BIN, VENV_SUBDIR))
         run("echo %s > %s/lib/%s/site-packages/projectsource.pth" %
             (SRC_DIR, VENV_SUBDIR, PYTHON_BIN))
+        run("pip install -r src/requirements.txt")
 
-@task
 def ensure_src_dir():
     if not exists(SRC_DIR):
-        #run("mkdir -p %s" % SRC_DIR)
+        local("git clean -fX")
         put(SRC_SUBDIR, PROJECT_DIR)
 
-WF_SERVR, WF_SESSN, WF_ACCNT = None, None, None
+WF_SERVR = WF_SESSN = WF_ACCNT = None
 
 def auth_webfaction():
     """Authenticates one-time with the Web Faction server.
@@ -104,24 +103,30 @@ def auth_webfaction():
     if not WF_SERVR:
         from xmlrpclib import ServerProxy
         server = ServerProxy('https://api.webfaction.com/')
-        session_id, account = server.login(username, password)
+        session_id, account = server.login(USER, PASSWD)
         WF_SERVR, WF_SESSN, WF_ACCNT = server, session_id, account
 
 @task
-def app_create(name):
-    local("echo "+name)
+def app_create():
     auth_webfaction()
-    WF_SERVR.create_app(WF_SESSN, name, "mod_wsgi34-python27")
+    WF_SERVR.create_app(WF_SESSN, APP_NAME, "mod_wsgi428-python27")
     # The above automatically creates $PROJECT_DIR
+    app = [a for a in WF_SERVR.list_apps(WF_SESSN) if a['name'] == APP_NAME][0]
+    print app
+    #websites = WF_SERVR.list_websites(WF_SESSN)
+    #website = [w for w in websites if w['name'] == SITENAME][0]
+    #print "Your current site:", website
+    ensure_src_dir()
+    ensure_virtualenv()
     with cd(PROJECT_DIR):
-        run("rm -r htdocs")
-    app = [a for a in WF_SERVR.list_apps(WF_SESSN) if a['name'] == name][0]
-    websites = WF_SERVR.list_websites(WF_SESSN)
-    website = [w for w in websites if w['name'] == SITENAME][0]
-    print "Your current site:", website
-    #run("mkdir $HOME/webapps/{}".format(APPNAME))
+        with virtualenv(VENV_DIR):
+            run("pip install -r src/requirements.txt")
+            run("""echo \
+"import sys
+sys.path.insert(0, '{}')
+from app import app as application" >> wsgi.py""".format(PROJECT_DIR))
+            run("apache2/bin/restart")
 
-@task
 def site_create(name):
     pass
     
@@ -129,7 +134,7 @@ def site_create(name):
 def app_delete():
     server_stop()
     auth_webfaction()
-    WF_SERVR.delete_app(WF_SESSN, name)
+    WF_SERVR.delete_app(WF_SESSN, APP_NAME)
 
 @task
 def domain_list():
