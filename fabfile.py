@@ -5,7 +5,7 @@ on Web Faction servers. So far it is purely for personal use only.
 """
 import posixpath
 
-from fabric.api import run, local, abort, env, put, task
+from fabric.api import run, local, abort, env, get, put, task
 from fabric.contrib.files import exists
 from fabric.context_managers import cd, lcd, settings, hide
 
@@ -82,9 +82,10 @@ def ensure_virtualenv():
     with cd(PROJECT_DIR):
         run("virtualenv --no-site-packages --python=%s %s" %
             (PYTHON_BIN, VENV_SUBDIR))
-        run("echo %s > %s/lib/%s/site-packages/projectsource.pth" %
-            (SRC_DIR, VENV_SUBDIR, PYTHON_BIN))
-        run("pip install -r src/requirements.txt")
+        with virtualenv(VENV_DIR):
+            run("echo %s > %s/lib/%s/site-packages/projectsource.pth" %
+                (SRC_DIR, VENV_SUBDIR, PYTHON_BIN))
+            run_venv("pip install -r src/requirements.txt")
 
 def ensure_src_dir():
     if not exists(SRC_DIR):
@@ -120,16 +121,38 @@ def app_create():
     ensure_virtualenv()
     with cd(PROJECT_DIR):
         with virtualenv(VENV_DIR):
-            run("pip install -r src/requirements.txt")
+            run_venv("pip install -r src/requirements.txt")
             run("""echo \
 "import sys
 sys.path.insert(0, '{}')
 from app import app as application" >> wsgi.py""".format(PROJECT_DIR))
-            run("apache2/bin/restart")
-
-def site_create(name):
-    pass
+            get("apache2/conf/httpd.conf", "httpd.conf.%(host)s")
+            filename = "httpd.conf.%s" % env.host_string
+            text = open(filename).readlines()
+            py_home =  "WSGIPythonHome {}/bin\n".format(VENV_DIR)
+            for i in range(len(text)):
+                if text[i].startswith("WSGI"):
+                    text.insert(i, py_home)
+                    break
+            for i in range(len(text)):
+                if text[i].strip().startswith("AddHandler"):
+                    text.insert(i, """\
+    RewriteEngine on
+    RewriteBase /
+    WSGIScriptReloading On
+""")
+                    break
+        outf = open(filename, "w")
+        outf.write("".join(text))
+        outf.close()
+        put(filename, PROJECT_DIR+"/apache2/conf/httpd.conf")
+        run("apache2/bin/restart")
     
+@task
+def py_version():
+    with virtualenv(VENV_DIR):
+        run_venv("which python; which pip")
+
 @task
 def app_delete():
     server_stop()
