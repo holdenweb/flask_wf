@@ -31,7 +31,7 @@ URLPATH = "/"
 PROJECT_DIR = posixpath.join('/home', USER, 'webapps', APP_NAME)
 VENV_SUBDIR = 'venv'
 VENV_DIR = posixpath.join(PROJECT_DIR, VENV_SUBDIR)
-SRC_SUBDIR = 'src'
+SRC_SUBDIR = 'app'
 SRC_DIR = posixpath.join(PROJECT_DIR, SRC_SUBDIR)
 
 # Extract some parameters from the environment?
