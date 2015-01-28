@@ -8,7 +8,11 @@ def hello():
     resp = twilio.twiml.Response()
     resp.dial("+15714846266")
     return str(resp)
-    return "Hello World!"
+
+@app.route("/info/")
+def any_old_name():
+    import sys
+    return sys.version
 
 if __name__ == "__main__":
     app.run()
