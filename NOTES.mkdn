@@ -11,6 +11,62 @@ for the person who designs a procedure to overlook obvious gaps in the
 information they provide, so all feedback will be valuable and will, indeed,
 give this project any real value it has.
 
-So far ()10:30 on 2015-1-25) I can create a remote pplication and transfer
+For example, you are probably wondering why the project is called what it is.
+That's because I am using a Python web server called `flask` hosted by a
+company called *WebFaction*. If you aren't, the best you can hope for is
+that these instructions might offer you a guide.
+
+To let you try things yourself (assuming you have an account with WebFaction
+and want to run `flask`) the project includes a fabric file (which in turn
+requires that your local Python has Fabric and a few other things installed.
+At present the requirements for deployment (i.e. what you need in your local
+Python to install web applications on your WebFaction account) are not
+separated from the production requirements, something that needs thought
+before too long.
+
+So far ()10:30 on 2015-1-25) I can create a remote application and transfer
 the source files up to the application directory. Now I should add a few files
 to the project to allow use of "git clean".
+
+UPDATE 2015-01-26:
+
+The git clean distribution seems to work for what it's worth.
+
+Now at the stage where I have got the local server to work (just run the
+module's __init__.py as a main program). So now I need to see whether the
+deployment step is going to work. This means making sure I have munged the
+default apache httpd.config into something more usable. Or perhaps not. I
+haven't yet addressed the issue of handling static files. This my be
+different from a local system. Not important yet!
+
+At this stage I can now install an app and have it prepare a usable virtual
+environment (as long as I rememebr to use `run_venv` when I want to use it).
+This appears to overcome the installation bugs where the requirements file
+conflicted with the standard Python's installed files in /usr/local.
+
+UPDATE 2015-1-28
+
+I have now confirmed by experiment that the WSGIPythonHome directive IS
+required - without it, local stuff from ~/lib gets included in the path
+thanks to WebFaction's special build(?) and/or 
+
+Good information from Aaron Presley about the required structure of
+the HTTPD control file at
+
+  http://aaronpresley.com/deploying-a-flask-project-on-webfaction/
+
+With this as a guide, plus stuff gleaned from
+
+  http://flask.pocoo.org/docs/0.10/deploying/mod_wsgi/#troubleshooting
+  
+I have managed to get the system working reliably, and only need to diff
+the file and find a way to make the necessary entries in httpd.conf. At
+present I am adding the path in the index.py (my application.wsgi file
+equivalent - the important thing is that it's aliased to the root handler
+in the WSGIScriptAlias directive) - want to see whether we can avoid the
+need to change sys.path by adding a WSGIPythonPath directive to the
+httpd.conf file. This seems not to work, but I'll play with it a little
+longer.
+
+Seems like the thing to do is to add the directory on the WSGIScriptAlias
+directive using the PATH option. Woot!
