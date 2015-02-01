@@ -21,9 +21,8 @@ PYTHON_FULL_PATH = "%s/bin/%s" % (PYTHON_PREFIX, PYTHON_BIN) if PYTHON_PREFIX el
 USER = username
 PASSWD = password
 HOST = 'web105.webfaction.com'
-GUNICORN_WORKERS = 1
 SITENAME = "holdenweb_preview"
-APPNAME = "new_app_6"
+APPNAME = "new_app_7"
 APP_NAME = APPNAME
 APP_PORT = 30123 # Should read port from WebFaction API
 URLPATH = "/"
@@ -85,7 +84,7 @@ def ensure_virtualenv():
         with virtualenv(VENV_DIR):
             run("echo %s > %s/lib/%s/site-packages/projectsource.pth" %
                 (SRC_DIR, VENV_SUBDIR, PYTHON_BIN))
-            run_venv("pip install -r src/requirements.txt")
+            run_venv("pip install -r {}/requirements.txt".format(SRC_SUBDIR))
 
 def ensure_src_dir():
     if not exists(SRC_DIR):
@@ -113,39 +112,40 @@ def app_create():
     WF_SERVR.create_app(WF_SESSN, APP_NAME, "mod_wsgi428-python27")
     # The above automatically creates $PROJECT_DIR
     app = [a for a in WF_SERVR.list_apps(WF_SESSN) if a['name'] == APP_NAME][0]
-    print app
+    print "Creating application", app
     #websites = WF_SERVR.list_websites(WF_SESSN)
     #website = [w for w in websites if w['name'] == SITENAME][0]
     #print "Your current site:", website
     ensure_src_dir()
     ensure_virtualenv()
+    print "SRC_SUBDIR is", SRC_SUBDIR
     with cd(PROJECT_DIR):
         with virtualenv(VENV_DIR):
-            run_venv("pip install -r src/requirements.txt")
-            run("""echo \
-"import sys
+            run("""\
+echo "import sys
 sys.path.insert(0, '{}')
 from app import app as application" >> wsgi.py""".format(PROJECT_DIR))
-            get("apache2/conf/httpd.conf", "httpd.conf.%(host)s")
-            filename = "httpd.conf.%s" % env.host_string
-            text = open(filename).readlines()
-            py_home =  "WSGIPythonHome {}/bin\n".format(VENV_DIR)
-            for i in range(len(text)):
-                if text[i].startswith("WSGI"):
-                    text.insert(i, py_home)
-                    break
-            for i in range(len(text)):
-                if text[i].strip().startswith("AddHandler"):
-                    text.insert(i, """\
-    RewriteEngine on
-    RewriteBase /
-    WSGIScriptReloading On
-""")
-                    break
-        outf = open(filename, "w")
-        outf.write("".join(text))
-        outf.close()
-        put(filename, PROJECT_DIR+"/apache2/conf/httpd.conf")
+            local("echo Remember to fix up httpd.conf")
+            #get("apache2/conf/httpd.conf", "httpd.conf.%(host)s")
+            #filename = "httpd.conf.%s" % env.host_string
+            #text = open(filename).readlines()
+            #py_home =  "WSGIPythonHome {}/bin\n".format(VENV_DIR)
+            #for i in range(len(text)):
+                #if text[i].startswith("WSGI"):
+                    #text.insert(i, py_home)
+                    #break
+            #for i in range(len(text)):
+                #if text[i].strip().startswith("AddHandler"):
+                    #text.insert(i, """\
+    #RewriteEngine on
+    #RewriteBase /
+    #WSGIScriptReloading On
+#""")
+                    #break
+        #outf = open(filename, "w")
+        #outf.write("".join(text))
+        #outf.close()
+        #put(filename, PROJECT_DIR+"/apache2/conf/httpd.conf")
         run("apache2/bin/restart")
     
 @task
@@ -184,7 +184,6 @@ def domain_list():
 ## deploy the app
 #cd $HOME
 #easy_install-2.7 flask
-#rm -r $HOME/webapps/$APPNAME/htdocs
 #mkdir $HOME/webapps/$APPNAME/$APPNAME
 #touch $HOME/webapps/$APPNAME/$APPNAME/__init__.py
 #touch $HOME/webapps/$APPNAME/$APPNAME/index.py
