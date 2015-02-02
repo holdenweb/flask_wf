@@ -2,4 +2,4 @@
 
 /home/sholden/webapps/{{ APP_NAME }}/apache2/bin/stop
 sleep 5
-/home/sholden/webapps{{ APP_NAME }}socket_app/apache2/bin/start
+/home/sholden/webapps/{{ APP_NAME }}/apache2/bin/start
