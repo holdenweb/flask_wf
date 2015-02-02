@@ -237,3 +237,8 @@ this issue is to include a "logs" subdirectory under the apache2
 directory so that there is somewhere for the default pidfile to be
 created.
 
+Woot! After many tribulations I now have a working process, which serves
+the web content immediately after installation. This is an achievement
+of sorts, and so the next period of effort should be to make sure that
+source code control is brought up to date and then think about engineering
+for greater robustness and increased flexibility.
