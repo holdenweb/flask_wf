@@ -4,12 +4,17 @@
 on Web Faction servers. So far it is purely for personal use only.
 """
 import posixpath
+import subprocess
+from cStringIO import StringIO
 
 from fabric.api import run, local, abort, env, get, put, task
 from fabric.contrib.files import exists
 from fabric.context_managers import cd, lcd, settings, hide
+from jinja2 import Template
 
 from credentials import username, password
+
+APPNAME = "new_app_8"
 
 # Set system parameters
 # Python version
@@ -22,15 +27,15 @@ USER = username
 PASSWD = password
 HOST = 'web105.webfaction.com'
 SITENAME = "holdenweb_preview"
-APPNAME = "new_app_7"
 APP_NAME = APPNAME
-APP_PORT = 30123 # Should read port from WebFaction API
+APP_TYPE = "custom_websockets_app_with_port"
+APP_PORT = None # Should read port from created WebFaction app detsails
 URLPATH = "/"
 
 PROJECT_DIR = posixpath.join('/home', USER, 'webapps', APP_NAME)
 VENV_SUBDIR = 'venv'
 VENV_DIR = posixpath.join(PROJECT_DIR, VENV_SUBDIR)
-SRC_SUBDIR = 'app'
+SRC_SUBDIR = 'htdocs'
 SRC_DIR = posixpath.join(PROJECT_DIR, SRC_SUBDIR)
 
 # Extract some parameters from the environment?
@@ -57,7 +62,7 @@ def server_restart():
 def install_dependencies():
     ensure_virtualenv()
     with virtualenv(VENV_DIR):
-        with cd(SRC_DIR):
+        with cd(PROJECT_DIR):
             run_venv("pip install -r requirements.txt")
 
 def virtualenv(venv_dir):
@@ -81,10 +86,6 @@ def ensure_virtualenv():
     with cd(PROJECT_DIR):
         run("virtualenv --no-site-packages --python=%s %s" %
             (PYTHON_BIN, VENV_SUBDIR))
-        with virtualenv(VENV_DIR):
-            run("echo %s > %s/lib/%s/site-packages/projectsource.pth" %
-                (SRC_DIR, VENV_SUBDIR, PYTHON_BIN))
-            run_venv("pip install -r {}/requirements.txt".format(SRC_SUBDIR))
 
 def ensure_src_dir():
     if not exists(SRC_DIR):
@@ -109,44 +110,38 @@ def auth_webfaction():
 @task
 def app_create():
     auth_webfaction()
-    WF_SERVR.create_app(WF_SESSN, APP_NAME, "mod_wsgi428-python27")
-    # The above automatically creates $PROJECT_DIR
+    print "Creating application", WF_SESSN, APP_NAME, APP_TYPE
+    WF_SERVR.create_app(WF_SESSN, APP_NAME, APP_TYPE)
+    # The above automat,kl8ically creates $PROJECT_DIR
     app = [a for a in WF_SERVR.list_apps(WF_SESSN) if a['name'] == APP_NAME][0]
-    print "Creating application", app
+    SOCKET = app["port"]
+    print "Created application:", app
     #websites = WF_SERVR.list_websites(WF_SESSN)
     #website = [w for w in websites if w['name'] == SITENAME][0]
     #print "Your current site:", website
     ensure_src_dir()
-    ensure_virtualenv()
     print "SRC_SUBDIR is", SRC_SUBDIR
-    with cd(PROJECT_DIR):
-        with virtualenv(VENV_DIR):
-            run("""\
-echo "import sys
-sys.path.insert(0, '{}')
-from app import app as application" >> wsgi.py""".format(PROJECT_DIR))
-            local("echo Remember to fix up httpd.conf")
-            #get("apache2/conf/httpd.conf", "httpd.conf.%(host)s")
-            #filename = "httpd.conf.%s" % env.host_string
-            #text = open(filename).readlines()
-            #py_home =  "WSGIPythonHome {}/bin\n".format(VENV_DIR)
-            #for i in range(len(text)):
-                #if text[i].startswith("WSGI"):
-                    #text.insert(i, py_home)
-                    #break
-            #for i in range(len(text)):
-                #if text[i].strip().startswith("AddHandler"):
-                    #text.insert(i, """\
-    #RewriteEngine on
-    #RewriteBase /
-    #WSGIScriptReloading On
-#""")
-                    #break
-        #outf = open(filename, "w")
-        #outf.write("".join(text))
-        #outf.close()
-        #put(filename, PROJECT_DIR+"/apache2/conf/httpd.conf")
-        run("apache2/bin/restart")
+    ensure_virtualenv()
+    print "Virtual environment is", VENV_DIR
+    put("requirements.txt", PROJECT_DIR)
+    install_dependencies()
+    render_context = {
+        "APP_NAME": APP_NAME,
+        "SOCKET": SOCKET,
+    }
+    with cd(PROJECT_DIR), virtualenv(VENV_DIR):
+        print "Local directory in subprocess:", subprocess.check_output("pwd")        
+        put("apache2.tgz", PROJECT_DIR)
+        run("tar xzvf apache2.tgz")
+        run("rm apache2/logs/httpd.pid") # remove when tar file patched
+        run("rm apache2.tgz")
+        conf_files = subprocess.check_output("find apache2 -type f".split()).splitlines()
+        for filename in conf_files:
+            template = Template(open(filename).read())
+            rendered = template.render(render_context)
+            put(StringIO(rendered.encode("Latin-1")), filename)
+        run("chmod u+x apache2/bin/*")
+        run("apache2/bin/start")
     
 @task
 def py_version():
