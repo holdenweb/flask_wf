@@ -184,5 +184,56 @@ of files (4) to parameterize, making it well worth using jinja!
 Cool, so now I have restructured the app so its code can live in the
 htdocs/main directory. This meant a further edit of the httpd.conf file,
 and also we had to change the `index.py` file to import from `main`
-rather than from `htdocs`. It's slowly becoming apparet to me what's
+rather than from `htdocs`. It's slowly becoming apparent to me what's
 going on in flask applications.
+
+So my project structure all lives, to make it simple, in the htdocs
+directory. I have added an empty subdirectory to act as DocumentRoot
+just in case of configuration errors and restructured the project,
+whose layout is now a lot more rational (as in, I feel I could
+probably defend it if I had to).
+
+This new structure is designed to install everything, with the web
+server being configured and installed as a part of our installation
+process rather than as part of the application creation. So now we
+should be creating a simple socket application, extracting the socket
+number from the application, and configuring it from the application
+environment.
+
+Hopefully this will result in a more controllable process. We shall
+see.
+
+UPDATE 2015-02-02
+
+Currently getting "no such file or directory" when I try to enumerate
+the files in the "apache2" directory. That was because I was trying to
+use a string instead of a list for the command!
+
+Now trying to create those files remotely, having substituted for the
+app_name and port number in binary and conf files and failing with a
+"no such file or directory" error on apache2/bin.start. Since restart
+always tells me Apache is not running I suspect issues with the pidfile.
+Let us see...
+
+Yes, the issue seems to be that a WebFaction-created app has a logs
+subdirectory (even though logging takes place to another directory
+entirely). However, when I tried to establish a PidFile in the conf
+file I still see the error. Maybe my hypothesis is wrong?
+
+Strangely, I see no error when I try to start Apache manually with the
+newly-established start file. When I do, however, index.py complains
+that there is no "main" package to import the application from. This
+is puzzling.
+
+Well the pidfile is being created, so maybe the issue is the main
+problem? Need to investigate. Aha, the indentation level on the run
+command to start apache was the issue - one too few levels and it was
+not being run on the correct directory context.
+
+There is a problem with the pidfile being in the logs area - because
+it doesn't get deleted when the app is deleted, the start script
+incorrectly assumes Apache is running when it starts up. The way round
+this issue is to include a "logs" subdirectory under the apache2
+directory so that there is somewhere for the default pidfile to be
+created.
+
