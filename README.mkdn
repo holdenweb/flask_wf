@@ -32,5 +32,30 @@ separate virtualenvs.
 pip install -r requirements.txt
 ```
 
+At this point you should be able to run the flask server with the
+command
 
+```
+python apache2/htdocs/main/__init__.py
+```
 
+Once you have developed your flask application to your liking, create
+a file in the project's root directory called `credentials.py` which
+assigns your WebFaction username to the `username` variable and your
+WebFaction password to the`password` variable. This file is ignored
+by git, and so should not show up in repositories.
+
+To deploy, ensure that all necessary parameters are established in the
+`fabfile.py` file (the changes should all be between the two rows of
+hash marks towards the top of the file). Then run the command
+
+```
+fab app_create
+```
+
+To remove your existing site to prepare for a new deployment you should
+run
+
+```
+fab app_delete
+```
