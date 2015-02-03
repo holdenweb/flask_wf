@@ -92,7 +92,7 @@ inside the logic.
 To get a handle on the process I took a diff between the installed 
 httpd.conf and the same file in a brand new wsgi/Python application.
 The changes are annotated below.
-
+```
 --- httpd.conf7 2015-01-30 21:05:31.000000000 +0000
 +++ apache2/conf/httpd.conf     2015-01-30 19:12:15.000000000 +0000
 @@ -10,21 +10,25 @@
@@ -127,6 +127,7 @@ s=1
 +    WSGIScriptReloading On
 +    # AddHandler wsgi-script .py
  </Directory>
+ ```
  
  The "mini-language" for editing could, technically, be provided as a
  templated diff file. I was thinking of something simpler, but it
