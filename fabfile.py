@@ -169,3 +169,10 @@ def domain_list():
     domains = WF_SERVR.list_domains(WF_SESSN)
     for domain in domains:
         print domain
+
+@task
+def site_list():
+    auth_webfaction()
+    sites = WF_SERVR.list_websites(WF_SESSN)
+    for site in sites:
+        print site
