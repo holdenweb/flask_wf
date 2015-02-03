@@ -16,6 +16,9 @@ At present the only usable (and half-way tested) tasks are:
 
 * app_delete: deletes the application (leaving the log files in place)
 
+For convenience there are also `server_{stop,start,restart}` tasks to
+allow you to manage the server from your local machine.
+
 Some functions may be marked as tasks even though they should not
 really be so in a production system. This has been done for testing
 purposes.
@@ -32,14 +35,16 @@ separate virtualenvs.
 pip install -r requirements.txt
 ```
 
-At this point you should be able to run the flask server with the
-command
+At this point I have no reliable way to run the flask server locally.
+When that comes along you should be able to run it with the command
 
 ```
 python apache2/htdocs/main/__init__.py
 ```
 
-Once you have developed your flask application to your liking, create
+This could probably be done relatively easily with another fab task.
+
+Create
 a file in the project's root directory called `credentials.py` which
 assigns your WebFaction username to the `username` variable and your
 WebFaction password to the`password` variable. This file is ignored
@@ -59,3 +64,4 @@ run
 ```
 fab app_delete
 ```
+
