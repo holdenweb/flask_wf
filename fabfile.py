@@ -16,6 +16,7 @@ from credentials import username, password
 
 APPNAME = "new_app_8"
 
+############################################################################
 # Set system parameters
 # Python version
 PYTHON_BIN = "python2.7"
@@ -39,6 +40,7 @@ SRC_SUBDIR = 'htdocs'
 SRC_DIR = posixpath.join(PROJECT_DIR, SRC_SUBDIR)
 
 # Extract some parameters from the environment?
+############################################################################
 
 # Establish universal fabric environment parameters
 # Host and login username:
